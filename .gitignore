@@ -30,10 +30,15 @@ pnpm-debug.log*
 .coverage
 coverage.xml
 htmlcov/
-backend/db.sqlite3
-backend/db.sqlite3-journal
+*.sqlite3
+*.sqlite3-journal
 backend/media/
+backend/private_media/
 backend/staticfiles/
+
+# Arquivos locais de referência (não versionar)
+/documentacao-sistema-chamados-ti (1).md
+/image.png
 
 # Logs e arquivos temporários
 *.log
