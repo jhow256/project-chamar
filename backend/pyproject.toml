@@ -1,19 +1,21 @@
 [project]
 name = "chamar"
-version = "0.1.0"
-description = ""
-authors = [
-    {name = "João Guilherme Farias Dutra",email = "jhowfd256@gmail.com"}
-]
-requires-python = ">=3.14"
+version = "1.0.0"
+description = "API do sistema de chamados de TI"
+requires-python = ">=3.12,<3.15"
 dependencies = [
-    "django (>=6.1.1,<7.0.0)",
-    "python-decouple (>=3.8,<4.0)",
-    "dj-database-url (>=3.1.2,<4.0.0)",
-    "psycopg[binary] (>=3.3.6,<4.0.0)"
+  "Django==5.2.8",
+  "djangorestframework==3.16.1",
+  "djangorestframework-simplejwt==5.5.1",
+  "django-filter==25.2",
+  "django-cors-headers==4.9.0",
+  "drf-spectacular==0.29.0",
+  "psycopg[binary]==3.3.2",
+  "argon2-cffi==25.1.0",
+  "Pillow==12.0.0",
+  "gunicorn==23.0.0",
 ]
-
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"

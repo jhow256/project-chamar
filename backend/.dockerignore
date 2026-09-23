@@ -1,0 +1,9 @@
+.env
+.env.*
+.venv
+__pycache__/
+*.py[cod]
+validation.sqlite3
+private_media/
+staticfiles/
+.git/
