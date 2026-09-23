@@ -1,0 +1,57 @@
+# Variáveis de ambiente e segredos
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Node.js
+**/node_modules/
+**/dist/
+**/build/
+**/.cache/
+**/.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python / Django
+**/__pycache__/
+*.py[cod]
+*$py.class
+**/.venv/
+**/venv/
+**/env/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+backend/db.sqlite3
+backend/db.sqlite3-journal
+backend/media/
+backend/staticfiles/
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# IDEs e sistema operacional
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Chaves e certificados locais
+*.pem
+*.key
+*.p12
+*.pfx
