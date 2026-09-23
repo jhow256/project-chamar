@@ -1,0 +1,8 @@
+import { Link } from 'react-router-dom'
+export function Spinner({ label = 'Carregando' }) { return <div className="state" role="status"><span className="spinner" aria-hidden="true" />{label}...</div> }
+export function Alert({ type = 'error', children }) { return children ? <div className={`alert ${type}`} role={type === 'error' ? 'alert' : 'status'}>{children}</div> : null }
+export function Empty({ title = 'Nada por aqui', text = 'Nenhum registro foi encontrado.', action, to }) { return <div className="empty"><span className="empty-icon" aria-hidden="true">◇</span><h3>{title}</h3><p>{text}</p>{action && <Link className="button" to={to}>{action}</Link>}</div> }
+export function PageHeader({ eyebrow, title, description, actions }) { return <header className="page-header"><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h1>{title}</h1>{description && <p>{description}</p>}</div>{actions && <div className="header-actions">{actions}</div>}</header> }
+export function StatusBadge({ value }) { const normalized = String(value || '').toLowerCase(); return <span className={`badge status-${normalized}`}>{String(value || '—').replaceAll('_', ' ')}</span> }
+export function Modal({ title, open, onClose, children }) { if (!open) return null; return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onMouseDown={(e) => e.stopPropagation()}><header><h2 id="modal-title">{title}</h2><button className="icon-button" onClick={onClose} aria-label="Fechar">×</button></header>{children}</section></div> }
+export function FieldError({ message }) { return message ? <small className="field-error">{message}</small> : null }

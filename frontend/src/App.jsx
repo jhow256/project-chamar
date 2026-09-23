@@ -1,0 +1,13 @@
+import { Route, Routes } from 'react-router-dom'
+import { AppShell } from './components/AppShell'
+import { PrivateRoute, PublicOnlyRoute, RoleRoute } from './components/RouteGuards'
+import { LoginPage, PasswordResetPage } from './pages/AuthPages'
+import { ErrorPage, PrivacyPage } from './pages/InfoPages'
+import TicketsPage from './pages/TicketsPage'
+import NewTicketPage from './pages/NewTicketPage'
+import TicketDetailPage from './pages/TicketDetailPage'
+import DashboardPage from './pages/DashboardPage'
+import CrudPage from './pages/CrudPage'
+import UsersPage from './pages/UsersPage'
+import ProfilePage from './pages/ProfilePage'
+export default function App(){return <Routes><Route element={<PublicOnlyRoute/>}><Route path="/login" element={<LoginPage/>}/><Route path="/recuperar-senha" element={<PasswordResetPage/>}/></Route><Route path="/privacidade" element={<PrivacyPage/>}/><Route element={<PrivateRoute/>}><Route element={<AppShell/>}><Route index element={<TicketsPage/>}/><Route path="/chamados" element={<TicketsPage/>}/><Route path="/chamados/novo" element={<NewTicketPage/>}/><Route path="/chamados/:id" element={<TicketDetailPage/>}/><Route path="/perfil" element={<ProfilePage/>}/><Route element={<RoleRoute role="tech"/>}><Route path="/dashboard" element={<DashboardPage/>}/><Route path="/cadastros/setores" element={<CrudPage type="sectors"/>}/><Route path="/cadastros/categorias" element={<CrudPage type="categories"/>}/><Route path="/cadastros/equipamentos" element={<CrudPage type="equipments"/>}/></Route><Route element={<RoleRoute role="staff"/>}><Route path="/admin/usuarios" element={<UsersPage/>}/></Route><Route path="/403" element={<ErrorPage code="403" title="Acesso não autorizado" text="Seu perfil não possui permissão para acessar esta área."/>}/><Route path="*" element={<ErrorPage/>}/></Route></Route><Route path="*" element={<ErrorPage/>}/></Routes>}
