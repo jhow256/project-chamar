@@ -4,7 +4,22 @@ import { api, messageOf } from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
 import { Alert } from '../components/Ui'
 
-function AuthVisual() { return <section className="auth-visual"><div className="visual-brand"><span className="brand-mark inverse">C</span><strong>Chamar</strong></div><div className="visual-content"><img src="/image.png" alt="Equipe de tecnologia prestando suporte" /><span className="eyebrow light">Central de atendimento</span><h1>Suporte que conecta pessoas e soluções.</h1><p>Registre, acompanhe e resolva solicitações de TI em um único lugar.</p><div className="trust-row"><span>✓ Atendimento organizado</span><span>✓ Histórico seguro</span></div></div></section> }
+function AuthVisual() {
+  return <section className="auth-visual" aria-label="Identidade institucional">
+    <div className="institutional-identity">
+      <header className="implurb-lockup">
+        <strong>IMPLURB</strong>
+        <span>Instituto Municipal de<br />Planejamento Urbano</span>
+      </header>
+      <img className="coat-of-arms" src="/Brasao.png" alt="Brasão da Prefeitura de Manaus" />
+      <footer className="manaus-lockup">
+        <span>Prefeitura de</span>
+        <strong>Manaus</strong>
+        <b>O trabalho não para!</b>
+      </footer>
+    </div>
+  </section>
+}
 export function LoginPage() {
   const { login } = useAuth(), navigate = useNavigate(), location = useLocation()
   const [form, setForm] = useState({ email: '', senha: '' }), [show, setShow] = useState(false), [loading, setLoading] = useState(false), [error, setError] = useState('')

@@ -39,6 +39,7 @@ backend/staticfiles/
 # Arquivos locais de referência (não versionar)
 /documentacao-sistema-chamados-ti (1).md
 /image.png
+/Brasao.png
 
 # Logs e arquivos temporários
 *.log
