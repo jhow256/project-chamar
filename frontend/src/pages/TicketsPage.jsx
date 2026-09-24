@@ -5,10 +5,47 @@ import { dateTime, isTech, priorityLabel, statusLabel } from '../lib/format'
 import { useAuth } from '../hooks/useAuth'
 import { Alert, Empty, PageHeader, Spinner, StatusBadge } from '../components/Ui'
 
+function exportToExcel(rows, isTech) {
+  const headers = isTech
+    ? ['Chamado', 'Título', 'Categoria', 'Setor', 'Solicitante', 'Prioridade', 'Status', 'Técnico', 'Criado em', 'Atualizado em']
+    : ['Chamado', 'Título', 'Categoria', 'Prioridade', 'Status', 'Criado em', 'Atualizado em']
+
+  const escape = (v) => {
+    const s = String(v ?? '').replace(/"/g, '""')
+    return /[,"\n\r]/.test(s) ? `"${s}"` : s
+  }
+
+  const csvRows = rows.map((t) => {
+    const base = [
+      t.numero || `#${t.id}`,
+      t.titulo,
+      textOf(t.categoria),
+      priorityLabel(t.prioridade),
+      statusLabel(t.status),
+      dateTime(t.criado_em),
+      dateTime(t.atualizado_em),
+    ]
+    if (isTech) {
+      base.splice(3, 0, textOf(t.setor), textOf(t.solicitante))
+      base.splice(7, 0, textOf(t.tecnico))
+    }
+    return base.map(escape).join(',')
+  })
+
+  const csv = '\uFEFF' + headers.join(',') + '\r\n' + csvRows.join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `chamados_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const initialFilters = { search: '', status: '', prioridade: '', categoria: '', setor: '', tecnico: '', data_inicio: '', data_fim: '', ordering: '-created_at', page_size: '10' }
 export default function TicketsPage() {
   const { user } = useAuth(), tech = isTech(user), [searchParams, setSearchParams] = useSearchParams()
-  const [filters, setFilters] = useState(() => ({ ...initialFilters, ...Object.fromEntries(searchParams) })), [data, setData] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState(''), [options, setOptions] = useState({ categories: [], sectors: [], users: [] })
+  const [filters, setFilters] = useState(() => ({ ...initialFilters, ...Object.fromEntries(searchParams) })), [data, setData] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState(''), [options, setOptions] = useState({ categories: [], sectors: [], users: [] }), [exporting, setExporting] = useState(false)
   const page = Number(searchParams.get('page') || 1)
   const query = useMemo(() => { const apiNames = { prioridade: 'priority', categoria: 'category', setor: 'sector', tecnico: 'technician' }; const value = {}; Object.entries(filters).forEach(([key, item]) => { if (item) value[apiNames[key] || key] = item }); value.page = page; return value }, [filters, page])
   const load = async () => { setLoading(true); setError(''); try { const response = await api.get('/tickets/', { params: query }); setData(response.data) } catch (err) { setError(messageOf(err)) } finally { setLoading(false) } }
@@ -17,7 +54,8 @@ export default function TicketsPage() {
   const change = (key, value) => { const next = { ...filters, [key]: value }; setFilters(next); const params = {}; Object.entries(next).forEach(([name, val]) => { if (val) params[name] = val }); setSearchParams(params, { replace: true }) }
   const clear = () => { setFilters(initialFilters); setSearchParams({}, { replace: true }) }
   const rows = rowsOf(data), count = data?.count ?? rows.length, size = Number(filters.page_size), pages = Math.max(1, Math.ceil(count / size))
-  return <><PageHeader eyebrow={tech ? 'Operação de suporte' : 'Minha área'} title={tech ? 'Fila de chamados' : 'Meus chamados'} description={tech ? `${count} solicitações encontradas em todos os setores.` : 'Acompanhe suas solicitações e interaja com a equipe de TI.'} actions={<Link className="button" to="/chamados/novo">+ Novo chamado</Link>} />
+  const handleExport = async () => { setExporting(true); setError(''); try { const apiNames = { prioridade: 'priority', categoria: 'category', setor: 'sector', tecnico: 'technician' }; const params = {}; Object.entries(filters).forEach(([key, val]) => { if (val && key !== 'page_size' && key !== 'ordering') params[apiNames[key] || key] = val }); params.page_size = 10000; const response = await api.get('/tickets/', { params }); exportToExcel(rowsOf(response.data), tech) } catch (err) { setError(messageOf(err)) } finally { setExporting(false) } }
+  return <><PageHeader eyebrow={tech ? 'Operação de suporte' : 'Minha área'} title={tech ? 'Fila de chamados' : 'Meus chamados'} description={tech ? `${count} solicitações encontradas em todos os setores.` : 'Acompanhe suas solicitações e interaja com a equipe de TI.'} actions={<div style={{display:'flex',gap:'.6rem'}}><button className="button secondary small" onClick={handleExport} disabled={exporting}>{exporting ? 'Exportando...' : '⬇ Exportar Excel'}</button><Link className="button" to="/chamados/novo">+ Novo chamado</Link></div>} />
     <section className="filter-card" aria-label="Filtros"><div className="search-input"><span>⌕</span><input aria-label="Buscar chamados" placeholder="Buscar por número, título ou descrição..." value={filters.search} onChange={(e) => change('search', e.target.value)} /></div><select aria-label="Filtrar por status" value={filters.status} onChange={(e) => change('status', e.target.value)}><option value="">Todos os status</option>{Object.entries({ ABERTO:'Aberto', EM_ATENDIMENTO:'Em atendimento', AGUARDANDO_USUARIO:'Aguardando usuário', RESOLVIDO:'Resolvido', FECHADO:'Fechado', CANCELADO:'Cancelado' }).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><select aria-label="Filtrar por prioridade" value={filters.prioridade} onChange={(e) => change('prioridade', e.target.value)}><option value="">Prioridades</option>{['BAIXA','MEDIA','ALTA','CRITICA'].map((value)=><option key={value}>{value}</option>)}</select><select aria-label="Filtrar por categoria" value={filters.categoria} onChange={(e) => change('categoria', e.target.value)}><option value="">Categorias</option>{options.categories.map((item)=><option key={item.id} value={item.id}>{textOf(item)}</option>)}</select>{tech && <><select aria-label="Filtrar por setor" value={filters.setor} onChange={(e) => change('setor', e.target.value)}><option value="">Setores</option>{options.sectors.map((item)=><option key={item.id} value={item.id}>{textOf(item)}</option>)}</select><select aria-label="Filtrar por técnico" value={filters.tecnico} onChange={(e) => change('tecnico', e.target.value)}><option value="">Técnicos</option>{options.users.map((item)=><option key={item.id} value={item.id}>{textOf(item)}</option>)}</select></>}<label className="compact-label">De<input type="date" value={filters.data_inicio} onChange={(e) => change('data_inicio', e.target.value)} /></label><label className="compact-label">Até<input type="date" value={filters.data_fim} onChange={(e) => change('data_fim', e.target.value)} /></label><button className="text-button" onClick={clear}>Limpar filtros</button></section>
     <Alert>{error}</Alert>{loading ? <Spinner label="Carregando chamados" /> : rows.length === 0 ? <Empty title="Nenhum chamado encontrado" text="Ajuste os filtros ou registre uma nova solicitação." action="Abrir chamado" to="/chamados/novo" /> : <section className="table-card"><div className="table-scroll"><table><thead><tr><th>Chamado</th><th>Categoria</th>{tech && <th>Setor / Solicitante</th>}<th>Prioridade</th><th>Status</th><th>Atualização</th><th><span className="sr-only">Ações</span></th></tr></thead><tbody>{rows.map((ticket)=><tr key={ticket.id}><td><Link className="ticket-link" to={`/chamados/${ticket.id}`}><strong>{ticket.numero || `#${ticket.id}`}</strong><span>{ticket.titulo}</span></Link></td><td>{textOf(ticket.categoria)}</td>{tech && <td><strong>{textOf(ticket.setor)}</strong><small>{textOf(ticket.solicitante)}</small></td>}<td><span className={`priority priority-${String(ticket.prioridade).toLowerCase()}`}>{priorityLabel(ticket.prioridade)}</span></td><td><StatusBadge value={statusLabel(ticket.status)} /></td><td>{dateTime(ticket.atualizado_em || ticket.criado_em)}</td><td><Link className="row-action" to={`/chamados/${ticket.id}`} aria-label={`Ver ${ticket.numero || ticket.id}`}>›</Link></td></tr>)}</tbody></table></div><footer className="pagination"><span>Mostrando {rows.length} de {count}</span><div><button disabled={page <= 1} onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: page - 1 })}>Anterior</button><span>Página {page} de {pages}</span><button disabled={page >= pages} onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: page + 1 })}>Próxima</button></div></footer></section>}</>
 }
