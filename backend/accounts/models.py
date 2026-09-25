@@ -68,3 +68,30 @@ class Consent(models.Model):
 
     class Meta:
         ordering = ["-accepted_at"]
+
+
+class LoginAttempt(models.Model):
+    """Controle de tentativas de login e bloqueio temporário por IP.
+
+    O IP é armazenado apenas como hash com salt (pseudonimização/LGPD).
+    """
+
+    ip_hash = models.CharField("hash do IP", max_length=64, unique=True)
+    failures = models.PositiveIntegerField("falhas consecutivas", default=0)
+    last_failure_at = models.DateTimeField("última falha em", null=True, blank=True)
+    blocked_until = models.DateTimeField("bloqueado até", null=True, blank=True)
+    updated_at = models.DateTimeField("atualizado em", auto_now=True)
+
+    class Meta:
+        verbose_name = "tentativa de login"
+        verbose_name_plural = "tentativas de login"
+        ordering = ["-updated_at"]
+        indexes = [models.Index(fields=["blocked_until"])]
+
+    def __str__(self):
+        return f"{self.ip_hash[:12]}… ({self.failures} falha(s))"
+
+    def seconds_remaining(self, now):
+        if not self.blocked_until or self.blocked_until <= now:
+            return 0
+        return int((self.blocked_until - now).total_seconds())

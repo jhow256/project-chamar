@@ -15,6 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from audit.services import audit
 from core.permissions import IsAdmin, IsTechnician
+from . import services as login_guard
 from .models import Consent, User
 from .serializers import ConsentSerializer, ProfileSerializer, UserSerializer
 
@@ -41,15 +42,52 @@ def set_refresh(response, token):
     response.set_cookie(COOKIE, str(token), max_age=7 * 86400, httponly=True, secure=settings.REFRESH_COOKIE_SECURE, samesite="Strict", path="/api/v1/auth/")
 
 
+def blocked_response(seconds):
+    minutes = max(1, -(-seconds // 60))
+    return Response(
+        {
+                "erro": {
+                    "codigo": "LIMITE_EXCEDIDO",
+                    "mensagem": (
+                        f"Muitas tentativas de login. Seu acesso está bloqueado por "
+                        f"{settings.LOGIN_BLOCK_MINUTES} minutos. Tente novamente em {minutes} minuto(s)."
+                    ),
+                    "detalhes": {"bloqueado_por_segundos": seconds},
+                }
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
+        headers={"Retry-After": str(seconds)},
+    )
+
+
 @extend_schema(request={"email": OpenApiTypes.EMAIL, "password": OpenApiTypes.STR}, responses={200: OpenApiTypes.OBJECT})
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@throttle_classes([ScopedRateThrottle])
 def login(request):
-    login.throttle_scope = "login"
+    blocked_for = login_guard.check_block(request)
+    if blocked_for:
+        audit(request, "LOGIN_BLOCKED", "auth", {"bloqueado_por_segundos": blocked_for})
+        return blocked_response(blocked_for)
+
     user = authenticate(request, email=request.data.get("email", "").lower(), password=request.data.get("password", ""))
     if not user or not user.is_active:
-        return Response({"erro": {"codigo": "CREDENCIAIS_INVALIDAS", "mensagem": "E-mail ou senha inválidos.", "detalhes": {}}}, status=401)
+        remaining, block_seconds = login_guard.register_failure(request)
+        if block_seconds:
+            audit(request, "LOGIN_BLOCKED", "auth", {"bloqueado_por_segundos": block_seconds})
+            return blocked_response(block_seconds)
+        audit(request, "LOGIN_FAILED", "auth", {"tentativas_restantes": remaining})
+        return Response(
+            {
+                "erro": {
+                    "codigo": "CREDENCIAIS_INVALIDAS",
+                    "mensagem": f"E-mail ou senha inválidos. Tentativas restantes: {remaining}.",
+                    "detalhes": {"tentativas_restantes": remaining},
+                }
+            },
+            status=401,
+        )
+
+    login_guard.register_success(request)
     refresh = RefreshToken.for_user(user)
     get_token(request)
     response = Response({"access": str(refresh.access_token), "user": ProfileSerializer(user).data})

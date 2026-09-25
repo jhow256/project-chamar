@@ -1,6 +1,19 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Consent, User
+from .models import Consent, LoginAttempt, User
+
+
+@admin.register(LoginAttempt)
+class LoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ["ip_hash", "failures", "blocked_until", "last_failure_at", "updated_at"]
+    readonly_fields = ["ip_hash", "failures", "last_failure_at", "updated_at"]
+    search_fields = ["ip_hash"]
+    actions = ["desbloquear"]
+
+    @admin.action(description="Desbloquear IPs selecionados")
+    def desbloquear(self, request, queryset):
+        updated = queryset.update(failures=0, blocked_until=None)
+        self.message_user(request, f"{updated} registro(s) desbloqueado(s).")
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
